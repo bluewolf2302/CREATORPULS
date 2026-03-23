@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: 'Bricolage Grotesque', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+:root {
+  --bg-base:        #070910;
+  --bg-surface:     #0c0e1a;
+  --bg-elevated:    #111424;
+  --bg-input:       #181b2e;
+  --bg-overlay:     rgba(7,9,16,0.85);
+  --brand:          #6e56cf;
+  --brand-light:    #9b8ae1;
+  --brand-dim:      rgba(110,86,207,0.14);
+  --brand-glow:     rgba(110,86,207,0.28);
+  --brand-border:   rgba(110,86,207,0.35);
+  --teal:           #00d4aa;
+  --teal-dim:       rgba(0,212,170,0.12);
+  --coral:          #ff5e45;
+  --coral-dim:      rgba(255,94,69,0.12);
+  --amber:          #f5a623;
+  --amber-dim:      rgba(245,166,35,0.12);
+  --sky:            #38b2ff;
+  --sky-dim:        rgba(56,178,255,0.12);
+  --text-primary:   #eeeaf8;
+  --text-secondary: #7c7a9a;
+  --text-tertiary:  #3e3c58;
+  --border-faint:   rgba(255,255,255,0.04);
+  --border-subtle:  rgba(255,255,255,0.07);
+  --border-default: rgba(255,255,255,0.11);
+  --border-strong:  rgba(255,255,255,0.18);
+  --radius-sm:      6px;
+  --radius-md:      10px;
+  --radius-lg:      16px;
+  --radius-xl:      22px;
+  --radius-full:    9999px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background layers */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(110,86,207,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(110,86,207,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+#root, main { position: relative; z-index: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-default); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* Focus states */
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Animations */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.8); }
+}
+
+@keyframes shimmer {
+  from { background-position: -600px 0; }
+  to   { background-position:  600px 0; }
+}
+
+@keyframes glow-breathe {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 0.8; transform: scale(1.06); }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-input) 50%, var(--bg-elevated) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}

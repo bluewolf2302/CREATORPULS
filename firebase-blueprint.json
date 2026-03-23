@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the CreatorPulse platform.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Channel": {
+      "title": "Channel",
+      "description": "A YouTube channel tracked by a user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who owns this channel record" },
+        "channelId": { "type": "string", "description": "YouTube Channel ID" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "subscriberCount": { "type": "number" },
+        "viewCount": { "type": "number" },
+        "videoCount": { "type": "number" },
+        "thumbnailUrl": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "channelId", "title", "updatedAt"]
+    },
+    "Strategy": {
+      "title": "Strategy",
+      "description": "An AI-generated content strategy.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "channelId": { "type": "string" },
+        "goalMode": { "type": "string" },
+        "plan": { "type": "string", "description": "JSON stringified plan array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "channelId", "goalMode", "plan", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles."
+    },
+    "/channels/{docId}": {
+      "schema": { "$ref": "#/entities/Channel" },
+      "description": "YouTube channels tracked by users."
+    },
+    "/strategies/{strategyId}": {
+      "schema": { "$ref": "#/entities/Strategy" },
+      "description": "Saved AI strategies."
+    }
+  }
+}
