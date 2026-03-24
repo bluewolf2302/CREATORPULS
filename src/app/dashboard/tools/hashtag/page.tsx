@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { HashtagResult } from '../../../../types/youtube'
 import { Hash, Copy, Loader2 } from 'lucide-react'
 
+import { getHashtags } from '../../../../services/gemini'
+
 export default function HashtagPage() {
   const [topic, setTopic] = useState('')
   const [niche, setNiche] = useState('general')
@@ -14,12 +16,8 @@ export default function HashtagPage() {
     if (!topic.trim()) return
     setLoading(true)
     try {
-      const res = await fetch('/api/ai/hashtags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, niche, youtubeSEOMode: seoMode }),
-      })
-      setResult(await res.json())
+      const data = await getHashtags(topic, niche, seoMode)
+      setResult(data)
     } catch (err) {
       console.error(err)
     } finally {

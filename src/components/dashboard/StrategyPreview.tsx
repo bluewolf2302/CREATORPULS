@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Calendar, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useChannelStore } from '../../store/channel'
+import { getStrategy } from '../../services/gemini'
 
 export default function StrategyPreview({ channelId, goalMode }: { channelId?: string, goalMode: string | null }) {
   const [strategy, setStrategy] = useState<StrategyPlan | null>(null)
@@ -15,12 +16,7 @@ export default function StrategyPreview({ channelId, goalMode }: { channelId?: s
     const fetchStrat = async () => {
       setLoading(true)
       try {
-        const res = await fetch('/api/ai/strategy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelId, goalMode, channel, videos, analytics }),
-        })
-        const data = await res.json()
+        const data = await getStrategy(channel, videos, analytics, goalMode || 'Growth')
         setStrategy(data)
 
         // Save strategy to Firestore
@@ -46,7 +42,7 @@ export default function StrategyPreview({ channelId, goalMode }: { channelId?: s
       }
     }
     fetchStrat()
-  }, [channelId, goalMode])
+  }, [channelId, goalMode, channel, videos, analytics])
 
   if (loading) return <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 24, height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>Generating strategy...</div>
 

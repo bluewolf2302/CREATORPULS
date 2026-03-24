@@ -3,6 +3,7 @@ import type { Opportunity } from '../../types/youtube'
 import { motion } from 'framer-motion'
 import { TrendingUp, AlertCircle, Clock } from 'lucide-react'
 import { useChannelStore } from '../../store/channel'
+import { getOpportunities } from '../../services/gemini'
 
 export default function OpportunityCard({ channelId, goalMode }: { channelId?: string, goalMode: string | null }) {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
@@ -14,12 +15,7 @@ export default function OpportunityCard({ channelId, goalMode }: { channelId?: s
     const fetchOpp = async () => {
       setLoading(true)
       try {
-        const res = await fetch('/api/ai/opportunities', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channelId, goalMode, channel, videos, analytics }),
-        })
-        const data = await res.json()
+        const data = await getOpportunities(channel, videos, analytics, goalMode || 'Growth')
         setOpportunities(data.opportunities || [])
       } catch (err) {
         console.error(err)
@@ -28,7 +24,7 @@ export default function OpportunityCard({ channelId, goalMode }: { channelId?: s
       }
     }
     fetchOpp()
-  }, [channelId, goalMode])
+  }, [channelId, goalMode, channel, videos, analytics])
 
   if (loading) return <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 24, height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>Analyzing opportunities...</div>
 

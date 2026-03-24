@@ -16,6 +16,8 @@ const DEFAULT_SCENARIO = {
   tactics: [],
 }
 
+import { simulateGrowth } from '../../../services/gemini'
+
 export default function SimulatorPage() {
   const { channel, videos, analytics } = useChannelStore()
   const { goalMode } = useGoalStore()
@@ -28,12 +30,8 @@ export default function SimulatorPage() {
   const runSimulation = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/ai/simulate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId: channel?.id, goalMode, scenario, period, channel, videos, analytics }),
-      })
-      setResult(await res.json())
+      const data = await simulateGrowth(scenario, period, channel, videos, analytics, goalMode || 'Growth')
+      setResult(data)
     } catch (err) {
       console.error(err)
     } finally {

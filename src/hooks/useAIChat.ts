@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useChatStore } from '../store/chat'
 import { useChannelStore } from '../store/channel'
 import { useGoalStore } from '../store/goalMode'
+import { streamChat } from '../services/gemini'
 
 export function useAIChat() {
   const { messages, addMessage, appendToLast, setStreaming, isStreaming } = useChatStore()
@@ -16,28 +17,16 @@ export function useAIChat() {
     setStreaming(true)
 
     try {
-      const response = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: [...messages, { role: 'user', content }],
-          channelId: channel?.id,
-          goalMode,
-          channel,
-          videos,
-          analytics
-        }),
-      })
+      const stream = streamChat(
+        [...messages, { role: 'user', content }],
+        channel,
+        videos,
+        analytics,
+        goalMode || 'Growth'
+      );
 
-      if (!response.body) throw new Error('No stream')
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        appendToLast(decoder.decode(value, { stream: true }))
+      for await (const chunk of stream) {
+        appendToLast(chunk || '');
       }
     } catch (err) {
       appendToLast('Sorry, I ran into an error. Please try again.')

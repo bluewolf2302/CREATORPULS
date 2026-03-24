@@ -2,13 +2,13 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import { google } from "googleapis";
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || "",
+const genAI = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY || "",
 });
 
 async function startServer() {
@@ -369,17 +369,17 @@ LOWEST ENGAGEMENT: "${worstVideo?.title}" (${
   app.post("/api/ai/chat", async (req, res) => {
     const { messages, channelId, goalMode, channel, videos, analytics } = req.body;
     
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: "Anthropic API key not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
     }
 
     const context = buildChannelContext(channel || {}, videos || [], analytics || [], goalMode);
 
     try {
-      const stream = await anthropic.messages.stream({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 600,
-        system: `You are the AI co-pilot for CreatorPulse, a YouTube analytics platform.
+      const response = await genAI.models.generateContentStream({
+        model: "gemini-3-flash-preview",
+        config: {
+          systemInstruction: `You are the AI co-pilot for CreatorPulse, a YouTube analytics platform.
 You have LIVE access to this creator's channel data:
 
 ${context}
@@ -391,22 +391,18 @@ Your role:
 - When they ask about performance, compare to their own averages, not generic benchmarks
 - Format any lists with line breaks, not markdown bullet syntax
 - Do not use asterisks or markdown bold`,
-        messages: messages.map((m: any) => ({
-          role: m.role,
-          content: m.content,
+        },
+        contents: messages.map((m: any) => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
         })),
       });
 
       res.setHeader("Content-Type", "text/plain; charset=utf-8");
       res.setHeader("Transfer-Encoding", "chunked");
 
-      for await (const chunk of stream) {
-        if (
-          chunk.type === "content_block_delta" &&
-          chunk.delta.type === "text_delta"
-        ) {
-          res.write(chunk.delta.text);
-        }
+      for await (const chunk of response) {
+        res.write(chunk.text);
       }
       res.end();
     } catch (err: any) {
@@ -417,17 +413,18 @@ Your role:
   app.post("/api/ai/strategy", async (req, res) => {
     const { channelId, goalMode, channel, videos, analytics } = req.body;
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: "Anthropic API key not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
     }
 
     const context = buildChannelContext(channel || {}, videos || [], analytics || [], goalMode);
 
     try {
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1000,
-        system: `You are a YouTube growth strategist with access to this creator's live channel data:
+      const response = await genAI.models.generateContent({
+        model: "gemini-3-flash-preview",
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: `You are a YouTube growth strategist with access to this creator's live channel data:
 
 ${context}
 
@@ -447,11 +444,11 @@ Generate a 5-day content strategy plan for this week. For each day (Monday–Fri
 
 Base suggestions on their real performance data. Reference their actual numbers.
 Respond ONLY with valid JSON.`,
-        messages: [{ role: "user", content: "Generate this week's content plan." }],
+        },
+        contents: [{ role: "user", parts: [{ text: "Generate this week's content plan." }] }],
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
-      res.json(JSON.parse(text));
+      res.json(JSON.parse(response.text));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -460,8 +457,8 @@ Respond ONLY with valid JSON.`,
   app.post("/api/ai/hashtags", async (req, res) => {
     const { topic, niche, youtubeSEOMode } = req.body;
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: "Anthropic API key not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
     }
 
     const userPrompt = `
@@ -475,10 +472,11 @@ Generate hashtags and SEO content for this YouTube video.
 `;
 
     try {
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 800,
-        system: `You are a YouTube SEO specialist. Generate hashtags and keywords for YouTube videos.
+      const response = await genAI.models.generateContent({
+        model: "gemini-3-flash-preview",
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: `You are a YouTube SEO specialist. Generate hashtags and keywords for YouTube videos.
 
 Output EXACTLY this JSON structure:
 {
@@ -499,11 +497,11 @@ Rules:
 - Micro tags: low competition, highly specific long-tail (3–6 words)
 - All tags WITHOUT the # symbol
 - Respond ONLY with valid JSON`,
-        messages: [{ role: "user", content: userPrompt }],
+        },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
-      res.json(JSON.parse(text));
+      res.json(JSON.parse(response.text));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -512,17 +510,18 @@ Rules:
   app.post("/api/ai/opportunities", async (req, res) => {
     const { channelId, goalMode, channel, videos, analytics } = req.body;
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: "Anthropic API key not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
     }
 
     const context = buildChannelContext(channel || {}, videos || [], analytics || [], goalMode);
 
     try {
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 800,
-        system: `You are a YouTube content strategist analyzing a creator's channel for growth opportunities.
+      const response = await genAI.models.generateContent({
+        model: "gemini-3-flash-preview",
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: `You are a YouTube content strategist analyzing a creator's channel for growth opportunities.
 
 Creator data:
 ${context}
@@ -542,17 +541,16 @@ Identify exactly 3 growth opportunities. Output EXACTLY this JSON:
 
 Base everything on their real channel data. Reference their actual numbers.
 Respond ONLY with valid JSON.`,
-        messages: [
+        },
+        contents: [
           {
             role: "user",
-            content:
-              "Identify the 3 highest-impact growth opportunities for this channel right now.",
+            parts: [{ text: "Identify the 3 highest-impact growth opportunities for this channel right now." }],
           },
         ],
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
-      res.json(JSON.parse(text));
+      res.json(JSON.parse(response.text));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -561,8 +559,8 @@ Respond ONLY with valid JSON.`,
   app.post("/api/ai/simulate", async (req, res) => {
     const { channelId, goalMode, scenario, period, channel, videos, analytics } = req.body;
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(500).json({ error: "Anthropic API key not configured" });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: "Gemini API key not configured" });
     }
 
     const context = buildChannelContext(channel || {}, videos || [], analytics || [], goalMode);
@@ -584,10 +582,11 @@ Current subscribers: ${channel?.subscriberCount?.toLocaleString() || 0}
 `;
 
     try {
-      const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 1200,
-        system: `You are a YouTube growth modeling AI. Given a creator's current data and proposed changes,
+      const response = await genAI.models.generateContent({
+        model: "gemini-3-flash-preview",
+        config: {
+          responseMimeType: "application/json",
+          systemInstruction: `You are a YouTube growth modeling AI. Given a creator's current data and proposed changes,
 project their growth over a specified period.
 
 Current channel data:
@@ -612,11 +611,11 @@ The projections array should have one entry per week for the requested period.
 Start each week's subscribers/views from the creator's current values.
 Model realistic growth curves — not linear, use slight compounding.
 Respond ONLY with valid JSON.`,
-        messages: [{ role: "user", content: userPrompt }],
+        },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
       });
 
-      const text = response.content[0].type === "text" ? response.content[0].text : "";
-      res.json(JSON.parse(text));
+      res.json(JSON.parse(response.text));
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

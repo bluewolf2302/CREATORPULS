@@ -6,6 +6,8 @@ import { motion } from 'framer-motion'
 import { TrendingUp, AlertCircle, Clock, RefreshCw } from 'lucide-react'
 import { formatNum } from '../../../lib/utils/formatters'
 
+import { getOpportunities } from '../../../services/gemini'
+
 export default function OpportunitiesPage() {
   const { channel, videos, analytics } = useChannelStore()
   const { goalMode } = useGoalStore()
@@ -16,12 +18,7 @@ export default function OpportunitiesPage() {
     if (!channel?.id) return
     setLoading(true)
     try {
-      const res = await fetch('/api/ai/opportunities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channelId: channel.id, goalMode, channel, videos, analytics }),
-      })
-      const data = await res.json()
+      const data = await getOpportunities(channel, videos, analytics, goalMode || 'Growth')
       setOpportunities(data.opportunities || [])
     } catch (err) {
       console.error(err)
